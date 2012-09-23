@@ -1,7 +1,48 @@
+#===============================================================================
+# ------------------------------------------------------------------------------
+# CONSTRAINT PROGRAMMING: Solving Sudoku via Local Search w/ Simulated Annealing
+# ------------------------------------------------------------------------------
+# 
+# PREREQUISITES
+# 
+# * Python 2.4+
+# 
+# RUN
+# 
+# To run, dump contents into a folder, then run the follow script in this format
+# 
+# $ python sudoku.py <TEMPERATURE_SEED> <PATH_TO_SUDOKU_TXT_FILE_PUZZLE>
+# 
+# EXAMPLE
+# 
+# $ python sudoku.py 0.5 test.txt
+# 
+# (This will run a sample sudoku puzzle with a seed system temperature of 0.5).
+# 
+# ABSTRACT
+# 
+# As described in the header, this solution solves a sudoku puzzle using simulated annealing. Which really means that it tries to pick better and better solutions, but randomly (depending on temerature) decides against that path a short-sighted better neighbourhood that scores better might lead to a dead-end.
+# 
+# HOW DOES IT EXACTLY WORK?
+# 
+# 1) Given a puzzle, we fill each subsquare with optimal solutions in that subsquare's context.
+# 2) Create a candidate puzzle that swaps 2 positions within a random subsquare.
+# 3) Scores the 2 puzzles, gets a delta, and given a comparator with the random seed, we decide whether to use the better puzzle. (More often or not we'd use the better solution)
+# 4) Repeat till puzzle is solved.
+# 
+# SUBTLETIES
+# 
+# * Steps 1/2 ensures that the 3rd requirement of the puzzle is fulfilled right from the start. Removing an additional constraint makes for less complexity.
+# 
+# DONE BY: Steven Goh (U087063E)
+#===============================================================================
+
 from random import sample, randint
 from copy import deepcopy
 from math import exp
 from random import random
+import sys
+import time
 
 
 class Sudoku:
@@ -11,6 +52,14 @@ class Sudoku:
         self.filled_puzzle = deepcopy(self.orig_puzzle_array) if puzzle_array is None else puzzle_array
         self.slots = self.get_slots()
         self.fill_slots()
+        
+    @staticmethod
+    def new_sudoku_from_file(path):
+        f = open(path,'r')
+        sstr = f.read().replace('\n',' ').replace('_','0')
+        array = sstr.split(' ')
+        s = Sudoku(map(int,array))
+        return s
         
     def get_slots(self):
         """
@@ -105,6 +154,7 @@ class Sudoku:
         for i in range(9):
             row = self.values_for_row(i)
             print " ".join(map(str,row))
+        print "\n"
     
     def swap_and_new_puzzle(self):
         """
@@ -126,9 +176,17 @@ def solve(sudoku_puzzle, T=None):
     current_score = sudoku_puzzle.score()
     current_puzzle = sudoku_puzzle
     
+    i = 0
+    timestamp = time.time()
     while current_score > -162:
         
-        #new swapped puzzle
+        #swap and make new candidate puzzle
+        i += 1
+        
+        if i % 10000 == 0:
+            print "Running %d iteration with the last 10000 iterations in %f seconds." % (i,time.time() - timestamp)
+            timestamp = time.time()
+        
         candidate_puzzle = current_puzzle.swap_and_new_puzzle()
         candidate_score = candidate_puzzle.score()
         delta_S = float(current_score - candidate_score) #if delta < 0, its better
@@ -139,14 +197,14 @@ def solve(sudoku_puzzle, T=None):
         
         T = .9999*T
     
+    print "Puzzle solved in %d iterations." % (i)
     return current_puzzle
 
 
-def run():
-    f = open('/home/nubela/Workspace/cs5215/assignment1/src/test.txt','r')
-    str = f.read().replace('\n',' ').replace('_','0')
-    array = str.split(' ')
-    s = Sudoku(map(int,array))
-    solve(s).pprint()
+def main(t_seed, path_to_puzzle_txt):
+    puzzle = Sudoku.new_sudoku_from_file(path_to_puzzle_txt)
+    solved_puzzle = solve(puzzle,t_seed)
+    solved_puzzle.pprint()
     
-run()
+if __name__ == '__main__':
+    sys.exit(main(float(sys.argv[1]), sys.argv[2]))
