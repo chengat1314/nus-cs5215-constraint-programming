@@ -1,10 +1,16 @@
 import itertools
+import sys
 
 
-__author__ = 'nubela'
+__author__ = 'Steven Goh Jian Wen'
+__matric_no__ = 'U087063E'
 
 
 class Arc:
+    """
+    Relationship between 2 blocks
+    """
+
     def __init__(self, block1, block2):
         self.block1 = block1
         self.block2 = block2
@@ -21,6 +27,10 @@ class Arc:
 
 
 class Block:
+    """
+    A block on a nonogram, can be either a row or column.
+    """
+
     def __init__(self, type, index, length):
         self.type = type
         self.index = index
@@ -31,20 +41,73 @@ class Block:
 
 
 class Nonogram:
+    """
+    A nonogram puzzle
+    """
+
     def build(self):
+        """
+        populate rows and columns of a nonogram puzzle
+        """
         self.rows = [Block('row', i, self.row_length) for i in range(self.col_length)]
         self.cols = [Block('col', i, self.col_length) for i in range(self.row_length)]
 
     def __init__(self, row_length, col_length, row_hints, col_hints):
         self.col_length = col_length
-        self.row_length = col_length
+        self.row_length = row_length
         self.row_hints = row_hints
         self.col_hints = col_hints
 
     def get_hint(self, block):
+        """
+        fetches hint as per block
+        """
         if block.type == 'row':
             return self.row_hints[block.index]
         return self.col_hints[block.index]
+
+    @staticmethod
+    def new_nonogram_from_txt(path_to_puzzle_txt):
+        def strip(s):
+            s = ' '.join(s.split())
+            s = s.replace('\n', '')
+            return s
+
+        f = open(path_to_puzzle_txt, 'r')
+        lines = f.readlines()
+
+        #row/col length
+        lines = filter(lambda x: x[0] != '#', lines)
+        length_line = strip(lines[0])
+        row_length, col_length = int(length_line.split(" ")[0]), int(length_line.split(" ")[1])
+
+        #col hints
+        col_hints = []
+        for i in range(1, 1 + row_length):
+            line = strip(lines[i]).split(" ")
+            col_hints += [tuple(map(int, line))]
+
+        #row hints
+        row_hints = []
+        for i in range(1 + row_length, 1 + row_length + col_length):
+            line = strip(lines[i]).split(" ")
+            row_hints += [tuple(map(int, line))]
+
+        return Nonogram(row_length, col_length, row_hints, col_hints)
+
+    def pprint(self):
+        def value(idx, list_of_tuples):
+            possibilities = []
+            for t in list_of_tuples:
+                possibilities += [t[idx]]
+            if len(possibilities) == 1: return str(possibilities[0]).replace("0", ".").replace("1", "*")
+            return "_"
+
+        for r in self.rows:
+            s = ""
+            for idx, _ in enumerate(self.cols):
+                s += "%s " % (value(idx, r.slots))
+            print s
 
 
 def matches_hint(slots, hint):
@@ -62,6 +125,9 @@ def matches_hint(slots, hint):
 
 
 def arc_reduce(arc_obj):
+    """
+    Reduces an arc's domain given the constraints present between 2 blocks
+    """
     block_lis = [arc_obj.block1, arc_obj.block2]
     arg_combs = list(itertools.product(*[b.slots for b in block_lis]))
     arc_obj.constraints = [lambda x, y: x[arc_obj.block2.index] == y[arc_obj.block1.index]]
@@ -83,7 +149,7 @@ def _get_unary_constraints(block, hint):
 
 def solve(nonogram):
     """
-    Solves nonogram
+    Solves nonogram via CSP (AC-3)
     """
     #build variables
     nonogram.build()
@@ -119,6 +185,9 @@ def solve(nonogram):
 
 
 def test_unary_constraint():
+    """
+    unit tests for an unary constraint for a block
+    """
     puzzle = Nonogram(3, 3, [(1, 1), (1,), (1,)], [(2,), (1,), (1,)])
     puzzle.build()
     row1 = puzzle.rows[0]
@@ -159,8 +228,16 @@ def test_arc_reduce():
 
 def test1():
     puzzle = Nonogram(3, 3, [(1, 1), (1,), (1,)], [(2,), (1,), (1,)])
-    solve(puzzle)
+    puzzle = solve(puzzle)
+    puzzle.pprint()
+
+
+def main(path_to_puzzle_txt):
+    puzzle = Nonogram.new_nonogram_from_txt(path_to_puzzle_txt)
+    puzzle = solve(puzzle)
+    puzzle.pprint()
 
 
 if __name__ == "__main__":
-    test1()
+    sys.exit(main(sys.argv[1]))
+
