@@ -1,4 +1,3 @@
-import itertools
 import sys
 
 
@@ -34,7 +33,7 @@ class Block:
     def __init__(self, type, index, length):
         self.type = type
         self.index = index
-        self.slots = list(set((itertools.product(*[range(2) for _ in range(length)]))))
+        self.slots = list(set((product(*[range(2) for _ in range(length)]))))
 
     def equals(self, block):
         return block.type == self.type and self.index == block.index
@@ -129,7 +128,7 @@ def arc_reduce(arc_obj):
     Reduces an arc's domain given the constraints present between 2 blocks
     """
     block_lis = [arc_obj.block1, arc_obj.block2]
-    arg_combs = list(itertools.product(*[b.slots for b in block_lis]))
+    arg_combs = list(product(*[b.slots for b in block_lis]))
     constraint_results = [filter(lambda x: c(*x), arg_combs) for c in arc_obj.constraints()][0]
 
     for idx, b in enumerate(block_lis):
@@ -235,6 +234,19 @@ def main(path_to_puzzle_txt):
     puzzle = Nonogram.new_nonogram_from_txt(path_to_puzzle_txt)
     puzzle = solve(puzzle)
     puzzle.pprint()
+
+
+def product(*args, **kwds):
+    """
+    for py2.6< support (they lack itertools lib)
+    - http://docs.python.org/2/library/itertools.html#itertools.permutations
+    """
+    pools = map(tuple, args) * kwds.get('repeat', 1)
+    result = [[]]
+    for pool in pools:
+        result = [x+[y] for x in result for y in pool]
+    for prod in result:
+        yield tuple(prod)
 
 
 if __name__ == "__main__":
