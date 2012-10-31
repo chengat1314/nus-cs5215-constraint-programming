@@ -84,13 +84,13 @@ class Nonogram:
         #col hints
         col_hints = []
         for i in range(1, 1 + row_length):
-            line = strip(lines[i]).split(" ")
+            line = strip(lines[i]).split(" ")[1:]
             col_hints += [tuple(map(int, line))]
 
         #row hints
         row_hints = []
         for i in range(1 + row_length, 1 + row_length + col_length):
-            line = strip(lines[i]).split(" ")
+            line = strip(lines[i]).split(" ")[1:]
             row_hints += [tuple(map(int, line))]
 
         return Nonogram(row_length, col_length, row_hints, col_hints)
@@ -130,8 +130,7 @@ def arc_reduce(arc_obj):
     """
     block_lis = [arc_obj.block1, arc_obj.block2]
     arg_combs = list(itertools.product(*[b.slots for b in block_lis]))
-    arc_obj.constraints = [lambda x, y: x[arc_obj.block2.index] == y[arc_obj.block1.index]]
-    constraint_results = [filter(lambda x: c(*x), arg_combs) for c in arc_obj.constraints][0]
+    constraint_results = [filter(lambda x: c(*x), arg_combs) for c in arc_obj.constraints()][0]
 
     for idx, b in enumerate(block_lis):
         if len(constraint_results) > 0:
